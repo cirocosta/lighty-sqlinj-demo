@@ -1,0 +1,12 @@
+FROM debian:jessie
+
+RUN echo "deb http://ftp.br.debian.org/debian testing main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb-src http://ftp.br.debian.org/debian testing main contrib non-free" >> /etc/apt/sources.list
+
+RUN apt-get -y update && \
+    apt-get \ 
+      install -y gcc vim curl \ 
+      mysql-client mysql-server \ 
+      net-tools
+
+CMD ["bash"]
