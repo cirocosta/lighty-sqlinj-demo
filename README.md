@@ -295,7 +295,7 @@ mysql-vhost.sql		= "SELECT docroot FROM domains WHERE domain='QUALQUER_COISA_QUE
 
 Um request bem intencionado apresenta então o seguinte fluxo de pacotes ao "farejarmos" a interface padrão `docker0`:
 
-![Fluxo de pacotes  Ok](packet-flow-ok.png)
+![Fluxo de pacotes  Ok](assets/packet-flow-ok.png)
 
 Analisando os componentes:
 
@@ -320,7 +320,7 @@ Utilizando o `curl` podemos realizar o forjar requests mal intencionados como de
 $ curl --header "Host: []' SINTAXE ERRADA" redes.io
 ```
 
-![Erro de Servidor](assets/server-error.png)
+![Erro de Servidor](assets/internal-server-error.png)
 
 Podemos detectar claramente que há uma vulnerabilidade a ser explorada uma vez que não deveria ocorrer um erro interno de servidor. Testando o mesmo script para o servidor do google:
 
