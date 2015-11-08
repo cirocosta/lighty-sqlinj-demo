@@ -1,0 +1,109 @@
+Index: branches/lighttpd-1.4.x/src/mod_mysql_vhost.c
+===================================================================
+--- branches/lighttpd-1.4.x/src/mod_mysql_vhost.c	(revision 2958)
++++ branches/lighttpd-1.4.x/src/mod_mysql_vhost.c	(revision 2959)
+@@ -339,6 +339,7 @@
+ 	mod_mysql_vhost_patch_connection(srv, con, p);
+ 
+ 	if (!p->conf.mysql) return HANDLER_GO_ON;
++	if (0 == p->conf.mysql_pre->used) return HANDLER_GO_ON;
+ 
+ 	/* sets up connection data if not done yet */
+ 	c = mod_mysql_vhost_connection_data(srv, con, p_d);
+@@ -350,10 +351,20 @@
+ 	/* build and run SQL query */
+ 	buffer_copy_string_buffer(p->tmp_buf, p->conf.mysql_pre);
+ 	if (p->conf.mysql_post->used) {
+-		buffer_append_string_buffer(p->tmp_buf, con->uri.authority);
++		/* escape the uri.authority */
++		unsigned long to_len;
++
++		/* 'to' has to be 'from_len * 2 + 1' */
++		buffer_prepare_append(p->tmp_buf, (con->uri.authority->used - 1) * 2 + 1);
++
++		to_len = mysql_real_escape_string(p->conf.mysql,
++				p->tmp_buf->ptr + p->tmp_buf->used - 1,
++				con->uri.authority->ptr, con->uri.authority->used - 1);
++		p->tmp_buf->used += to_len;
++
+ 		buffer_append_string_buffer(p->tmp_buf, p->conf.mysql_post);
+ 	}
+-	if (mysql_query(p->conf.mysql, p->tmp_buf->ptr)) {
++	if (mysql_real_query(p->conf.mysql, p->tmp_buf->ptr, p->tmp_buf->used - 1)) {
+ 		log_error_write(srv, __FILE__, __LINE__, "s", mysql_error(p->conf.mysql));
+ 		goto ERR500;
+ 	}
+Index: branches/lighttpd-1.4.x/src/request.c
+===================================================================
+--- branches/lighttpd-1.4.x/src/request.c	(revision 2958)
++++ branches/lighttpd-1.4.x/src/request.c	(revision 2959)
+@@ -43,7 +43,7 @@
+ 		char *c = host->ptr + 1;
+ 		int colon_cnt = 0;
+ 
+-		/* check portnumber */
++		/* check the address inside [...] */
+ 		for (; *c && *c != ']'; c++) {
+ 			if (*c == ':') {
+ 				if (++colon_cnt > 7) {
+@@ -67,6 +67,10 @@
+ 				}
+ 			}
+ 		}
++		else if ('\0' != *(c+1)) {
++			/* only a port is allowed to follow [...] */
++			return -1;
++		}
+ 		return 0;
+ 	}
+ 
+Index: branches/lighttpd-1.4.x/tests/core-request.t
+===================================================================
+--- branches/lighttpd-1.4.x/tests/core-request.t	(revision 2958)
++++ branches/lighttpd-1.4.x/tests/core-request.t	(revision 2959)
+@@ -8,7 +8,7 @@
+ 
+ use strict;
+ use IO::Socket;
+-use Test::More tests => 36;
++use Test::More tests => 38;
+ use LightyTest;
+ 
+ my $tf = LightyTest->new();
+@@ -198,8 +198,24 @@
+ $t->{RESPONSE} = [ { 'HTTP-Protocol' => 'HTTP/1.0', 'HTTP-Status' => 400 } ];
+ ok($tf->handle_http($t) == 0, 'broken IPv4 address - too short');
+ 
++$t->{REQUEST}  = ( <<EOF
++GET / HTTP/1.0
++Host: [::1]' UNION SELECT '/
++EOF
++ );
++$t->{RESPONSE} = [ { 'HTTP-Protocol' => 'HTTP/1.0', 'HTTP-Status' => 400 } ];
++ok($tf->handle_http($t) == 0, 'IPv6 address + SQL injection');
+ 
++$t->{REQUEST}  = ( <<EOF
++GET / HTTP/1.0
++Host: [::1]/../../../
++EOF
++ );
++$t->{RESPONSE} = [ { 'HTTP-Protocol' => 'HTTP/1.0', 'HTTP-Status' => 400 } ];
++ok($tf->handle_http($t) == 0, 'IPv6 address + path traversal');
+ 
++
++
+ ## Low-Level Request-Header Parsing - Content-Length
+ 
+ 
+Index: branches/lighttpd-1.4.x/NEWS
+===================================================================
+--- branches/lighttpd-1.4.x/NEWS	(revision 2958)
++++ branches/lighttpd-1.4.x/NEWS	(revision 2959)
+@@ -21,6 +21,7 @@
+   * fix unchecked return values from stream_open/stat_cache_get_entry
+   * [mod_webdav] fix logic error in handling file creation error
+   * check length of unix domain socket filenames
++  * fix SQL injection / host name validation (thx Jann Horn)
+ 
+ - 1.4.34
+   * [mod_auth] explicitly link ssl for SHA1 (fixes #2517)

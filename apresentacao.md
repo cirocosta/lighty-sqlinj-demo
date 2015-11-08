@@ -11,6 +11,12 @@
 
 ## lighttpd
 
+Webserver opensource (licensa BSD) otimizado para ser level e rápido. Surgiu como um 'proof-of-concept' do famoso problema c10k (como lidar com 10mil conexões simultaneas em um servidor), tendo então ganhado bastante popularidade à época (2003). 
+
+Ele busca lidar com o problema de muitas conexões através do uso de mecanismos assíncronos através de eventos (`kqueue` em BSDs, `epoll` em Linux) reduzindo a necessidade de várias threads, resultando então em um memory footprint muito menor e melhor utilização de CPU.
+
+É atualmente utilizado pela Wikimedia, Xkcd e no passado sendo utilizado pelo Youtube.
+
 ## Virtual Hosting
 
 > Method for hosting multiple domain names on a single (or pool of) server(s). Widely used for shared web hosting where hosting prices get lower than a dedicated web server as memory and processor cycles are shared.
@@ -22,6 +28,9 @@ Pode ser ip-based (uma interface para cada host) ou name-based (um nome para cad
 > A technical prerequisite needed for name-based virtual hosts is a web browser with HTTP/1.1 support (commonplace today) to include the target hostname in the request. This allows a server hosting multiple sites behind an IP address to deliver the correct site's content.
 
 Problemas: **TODO**
+
+### Ip-Based
+
 
 ### Preparando um servidor
 
@@ -73,10 +82,6 @@ Mas, como podemos imaginar, isto pode tornar-se um problema à medida que deseja
 TODO
 
 
-### Ip-Based
-
-
-
 ## sql
 
 SQL se trata de uma linguagem para 'conversar' com databases através de uma linguagem bastante alta - chega a lembrar bastante inglês.
@@ -98,12 +103,16 @@ Como resolver? Escaping.
 
 TODO
 
-## Docker Networking
+## Docker
+
+### Docker Networking
 
 TODO
 
 
-## Ataque
+## Demo!
+
+### Exploit
 
 Utilizando o `curl` podemos realizar o ataque através do uso de requests mal intencionados como descrito na confirmação da CVE.
 
@@ -113,4 +122,12 @@ $ curl --header "Host: []' UNION SELECT'" redes.io
 
 TODO
 
+### Verificação do Path
+
+Podemos verificar que o patch resolve o problema primeiramente refazendo os testes incluídos:
+
+```
+```sh
+$ curl --header "Host: []' UNION SELECT'" redes.io
+```
 
