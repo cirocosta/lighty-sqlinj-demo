@@ -54,7 +54,7 @@ O serviço a ser explorado trata-se do Lighttpd. Esté é um Webserver opensourc
 
 O servidor busca lidar com o problema de muitas conexões através do uso de mecanismos assíncronos através de eventos (`kqueue` em BSDs, `epoll` em Linux) reduzindo a necessidade de várias threads, resultando então em uma 'pegada' de memória muito menor e melhor utilização de CPU (estratégia também utilizada por servidores Nginx, cujo uso tem aumentado significativamente ao longo dos anos):
 
-![Mercado Servidores](servers-market.png)
+![Mercado Servidores](assets/servers-market.png)
 
 Uma das features do lighty é o fácil gerenciamente de virtual hosts.
 
@@ -283,16 +283,50 @@ mysql> SELECT * FROM domains;
 | mac5910.io | /usr/lighttpd/mac5910/ |
 | redes.io   | /usr/lighttpd/redes/   |
 +------------+------------------------+
-
 ```
+
+A partir deste instante os servidores são capazes de realizar o virtual hosting baseado no banco de dados.
 
 ### Exploit
 
-Utilizando o `curl` podemos realizar o ataque através do uso de requests mal intencionados como descrito na confirmação da CVE.
+O ataque consistem em explorar uma falha no parsing do cabaçalho `Host` enviado em requisições HTTP com hosts IPv6. O método responsável pelo parse permite que, além do host, outros caractéres sejam lidos e interpretados como host. O problema disto é que, como mostrado anteriormente, é que no comando de busca por um host virtual uma string de host é colocada cegamente (não realizando escaping) no comando SQL:
+
+```
+mysql-vhost.sql		= "SELECT docroot FROM domains WHERE domain='QUALQUER_COISA_QUE_VENHA_NO_HOST';"
+```
+
+Um request bem intencionado apresenta então o seguinte fluxo de pacotes ao "farejarmos" a interface padrão `docker0`:
+
+![Fluxo de pacotes  Ok](packet-flow-ok.png)
+
+Analisando os componentes:
+
+![Requisição HTTP Ok](assets/HTTP-request-ok.png)
+![Requisição MySQL Ok](assets/MySQL-request-ok.png)
+![Resposta MySQL Ok](assets/MySQL-response-ok.png)
+![Resposta HTTP Ok](assets/HTTP-response-ok.png)
+
+Podemos então explorar tal vulnerabilidade.
+
+Utilizando o `curl` podemos realizar o forjar requests mal intencionados como descrito na confirmação da CVE.
 
 ```sh
-$ curl --header "Host: []' UNION SELECT'" redes.io
+$ curl --header "Host: []' SINTAXE ERRADA" redes.io
 ```
+
+![Erro de Servidor](assets/server-error.png)
+
+Podemos detectar claramente que há uma vulnerabilidade a ser explorada uma vez que não deveria ocorrer um erro interno de servidor. Testando o mesmo script para o servidor do google:
+
+```sh
+$ curl --header "Host: []' SINTAXE ERRADA" www.google.com
+<html><title>Error 400 (Bad Request)!!1</title></html>% 
+```
+
+Confirmamos que podemos explorar o banco de dados ao analisar o request feito ao banco:
+
+![Erro de Servidor](assets/mysql-syntax-error.png)
+
 
 TODO
 
