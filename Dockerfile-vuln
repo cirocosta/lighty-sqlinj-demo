@@ -33,4 +33,4 @@ COPY common/lighttpd.conf /usr/lighttpd/lighttpd.conf
 
 EXPOSE 80
 
-CMD ["lighttpd", "-f", "/usr/lighttpd/lighttpd.conf"]
+CMD ["bash"]

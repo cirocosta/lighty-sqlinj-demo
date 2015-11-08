@@ -11,11 +11,14 @@
 
 ## lighttpd
 
-Webserver opensource (licensa BSD) otimizado para ser level e rápido. Surgiu como um 'proof-of-concept' do famoso problema c10k (como lidar com 10mil conexões simultaneas em um servidor), tendo então ganhado bastante popularidade à época (2003). 
+O serviço a ser explorado trata-se do Lighttpd. Esté é um Webserver opensource (licensa BSD) otimizado para ser leve e rápido. Surgiu como uma 'proof-of-concept' do famoso problema c10k (como lidar com 10mil conexões simultaneas em um servidor), tendo então ganhado bastante popularidade à época (2003), sendo atualmente utilizado pela Wikimedia, Xkcd e no passado sendo utilizado pelo Youtube. Seu posicionamento no mercado é bastante interessante, como podemos verificar no gráfico:
 
-Ele busca lidar com o problema de muitas conexões através do uso de mecanismos assíncronos através de eventos (`kqueue` em BSDs, `epoll` em Linux) reduzindo a necessidade de várias threads, resultando então em um memory footprint muito menor e melhor utilização de CPU.
+![Posicionamento Lighttpd - Tráfego x Quantidade de Websites](assets/lighttpd-market-pos.png)
 
-É atualmente utilizado pela Wikimedia, Xkcd e no passado sendo utilizado pelo Youtube.
+Ele busca lidar com o problema de muitas conexões através do uso de mecanismos assíncronos através de eventos (`kqueue` em BSDs, `epoll` em Linux) reduzindo a necessidade de várias threads, resultando então em um memory footprint muito menor e melhor utilização de CPU (estratégia também utilizada por servidores Nginx, cujo uso tem aumentado significativamente ao longo dos anos):
+
+![Mercado Servidores](servers-market.png)
+
 
 ## Virtual Hosting
 
@@ -105,12 +108,100 @@ TODO
 
 ## Docker
 
+Provém uma camada de abstração em cima do sistema operacional permitindo virtualização sem a necessidade de outro sistema operacional através do uso de mecanismos de isolamento fornecidos pelo kernel, como `cgroups` e `namespaces`, removendo então todo o overhead de inciar e manter uma máquina virtual. Há, dessa forma, grande otimização referente à alocação de recursos (e.g, 100 máquinas virtuais com imagens de 1GB ==> 100GB. 100 containers de uma imagem de 1GB ==> ~1GB.) e compartilhamento de processamento, assim como o Kernel e o sistema operacional em si. Arquivos comuns aos containers podem também ser compartilhados por meio de um sistem de arquivos em camadas (TODO).
+
+Deve-se levar em conta que eventualmente o usuário não deseje tal compartilhamento e pouco isolamente.
+
+### Namespaces
+
+
 ### Docker Networking
 
-TODO
+```
+   The Internet Assigned Numbers Authority (IANA) has reserved the
+   following three blocks of the IP address space for private internets:
+
+     10.0.0.0        -   10.255.255.255  (10/8 prefix)
+     172.16.0.0      -   172.31.255.255  (172.16/12 prefix)
+     192.168.0.0     -   192.168.255.255 (192.168/16 prefix)
+```
+
+Quando docker iniicia, cria uma interface virtual chamada `docker0` no host.
 
 
 ## Demo!
+
+A demonstração depende de um ambiente com  [docker](docker.io) propriamente instalado. Feito isto, as imagens precisam ser criadas:
+
+```sh
+$ ./run-build-images.sh
+```
+
+O comando acima executará, para cada imagem - debian com lighttpd vulnerável e outra com lighttpd não vulnerável - o processo de criação explícito nos `Dockerfile`s correspondentes.
+
+Feito isto, podemos então instanciar os containers que representarão as instâncias de processamento que fazem parte da demo:
+
+- um servidor de mysql escutando na porta 3306 do `lighty-mysqlserver`.
+- um servidor lighty escutando na porta 80 do  `lighty-vulnerable`.
+- um servidor lighty escutando na porta 80 do container `lighty-patched`.
+
+Para obter os IPs dos containers, basta executar o comando:
+
+```sh
+$ ./run-getips.sh
+
+Docker container ip Addresses:
+ - lighty-vulnerable:  172.17.0.3
+ - lighty-patched:  172.17.0.4
+ - lighty-mysqlserver: 172.17.0.2
+```
+
+As supostas máquinas estão prontas, resta apenas configurar o DNS para que a resolução de endereços seja feita corretamente.
+
+(agora poderíamos criar outro container, dedicado à resolução usando BIND, porém para agilizar podemos simplesmente editar o `/etc/hosts`):
+
+```
+172.17.0.3 redes.io
+172.17.0.3 mac0448.io
+172.17.0.3 mac5910.io
+```
+
+Precisamos agora fazer com que o servidor `lighttpd` seja capaz de fazer a tarefa de virtual hosting usando o servidor de mysql. Para isto precisamos inserir as entradas no servidor:
+
+```sh
+$ docker exec -it lighty-mysqlserver bash
+root@lighty-mysqlserver:/# mysql -u root -p
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| lighttpd           |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+mysql> use lighttpd;
+mysql> mysql> CREATE TABLE domains(
+    -> domain varchar(64) not null primary key,
+    -> docroot varchar(128) not null
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> INSERT INTO domains VALUES ('redes.io', '/usr/lighttpd/redes/');
+mysql> INSERT INTO domains VALUES ('mac5910.io', '/usr/lighttpd/mac5910/');
+mysql> INSERT INTO domains VALUES ('mac0448.io', '/usr/lighttpd/mac0448/');
+
+mysql> SELECT * FROM domains;
++------------+------------------------+
+| domain     | docroot                |
++------------+------------------------+
+| mac0448.io | /usr/lighttpd/mac0448/ |
+| mac5910.io | /usr/lighttpd/mac5910/ |
+| redes.io   | /usr/lighttpd/redes/   |
++------------+------------------------+
+
+```
 
 ### Exploit
 
@@ -121,6 +212,12 @@ $ curl --header "Host: []' UNION SELECT'" redes.io
 ```
 
 TODO
+
+### Obtendo os IPs
+
+```sh
+$ docker ps | grep 'lighty' | awk '{print $1}'
+```
 
 ### Verificação do Path
 

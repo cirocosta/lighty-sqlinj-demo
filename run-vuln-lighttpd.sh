@@ -12,5 +12,6 @@ fi
 echo "Creating 'vulnerable server' image"
 echo "| "
 echo "+---> port 80 will be exposed"
-docker run -it --name vulnerable_server \
-  --link mysqlserver:mysql -d lighttpd-vuln
+docker run -it --name lighty-vulnerable \
+  -h lighty-vulnerable \
+  --link lighty-mysqlserver:mysql -d lighttpd-vuln
