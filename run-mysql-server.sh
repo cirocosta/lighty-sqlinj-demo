@@ -3,7 +3,7 @@
 echo "Starting MYSQL server instance!"
 
 docker run --name lighty-mysqlserver \
-  -h lighty-mysqlserver
+  -h lighty-mysqlserver \
   -e MYSQL_ROOT_PASSWORD=toor -e MYSQL_DATABASE=lighttpd \
   -d mysql:latest
 
