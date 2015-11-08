@@ -9,37 +9,46 @@
   - [ ] Aplicar a correção da falha 
   - [ ] Tentar explorar novamente
 
-## lighttpd
+## lighttpd (lighty)
 
-O serviço a ser explorado trata-se do Lighttpd. Esté é um Webserver opensource (licensa BSD) otimizado para ser leve e rápido. Surgiu como uma 'proof-of-concept' do famoso problema c10k (como lidar com 10mil conexões simultaneas em um servidor), tendo então ganhado bastante popularidade à época (2003), sendo atualmente utilizado pela Wikimedia, Xkcd e no passado sendo utilizado pelo Youtube. Seu posicionamento no mercado é bastante interessante, como podemos verificar no gráfico:
+O serviço a ser explorado trata-se do Lighttpd. Esté é um Webserver opensource (licensa BSD) otimizado para ser leve e rápido. Surgiu como uma 'proof-of-concept' do famoso problema c10k (como lidar com 10mil conexões simultaneas em um servidor), tendo então ganhado bastante popularidade à época (2003), sendo atualmente utilizado port Whatsapp.com, Xkcd e no passado, Youtube. Seu posicionamento no mercado é bastante interessante, como podemos verificar no gráfico:
 
 ![Posicionamento Lighttpd - Tráfego x Quantidade de Websites](assets/lighttpd-market-pos.png)
 
-Ele busca lidar com o problema de muitas conexões através do uso de mecanismos assíncronos através de eventos (`kqueue` em BSDs, `epoll` em Linux) reduzindo a necessidade de várias threads, resultando então em um memory footprint muito menor e melhor utilização de CPU (estratégia também utilizada por servidores Nginx, cujo uso tem aumentado significativamente ao longo dos anos):
+O servidor busca lidar com o problema de muitas conexões através do uso de mecanismos assíncronos através de eventos (`kqueue` em BSDs, `epoll` em Linux) reduzindo a necessidade de várias threads, resultando então em uma 'pegada' de memória muito menor e melhor utilização de CPU (estratégia também utilizada por servidores Nginx, cujo uso tem aumentado significativamente ao longo dos anos):
 
 ![Mercado Servidores](servers-market.png)
+
+Uma das features do lighty é o fácil gerenciamente de virtual hosts.
 
 
 ## Virtual Hosting
 
-> Method for hosting multiple domain names on a single (or pool of) server(s). Widely used for shared web hosting where hosting prices get lower than a dedicated web server as memory and processor cycles are shared.
+Trata-se de um método utilizado para hosperadas mais de um nome de domínio cuja resolução se faz a um mesmo IP, reduzindo custos de hospedagem a empresas que buscam ofertam websites uma vez que não é necessário ofertar um servidor dedicado a cada website.
 
-Pode ser ip-based (uma interface para cada host) ou name-based (um nome para cada host, compartilhando a interface).
+A técnica pode ser baseada em IP (uma interface para cada host) ou baseada em nome (um nome para cada host, compartilhando a interface) - explorada nesta apresentação.
 
-### Name-Based
+**Name-Based**
 
-> A technical prerequisite needed for name-based virtual hosts is a web browser with HTTP/1.1 support (commonplace today) to include the target hostname in the request. This allows a server hosting multiple sites behind an IP address to deliver the correct site's content.
+:   TODO
 
-Problemas: **TODO**
+**IP-Based**
 
-### Ip-Based
+:   TODO
 
+**Mixed**
 
-### Preparando um servidor
+:   TODO
+
+No caso de uma grande empresa pode tornar-se complexo administrar tal mapeamente dependendo do número de clientes. O Lighty oferece então suporte para o uso de banco de dados para tal finalidade como mostraremos adiante.
+
+Antes, vejamos como fazer "na mão" a configuração de um servidor e então adicionar vhosting.
+
+### Preparando um servidor Lighttpd
 
 Preparar um servidor básico `lighttpd`  é muito fácil. Basta realizar sua instalação e criar um arquivo de configuração que dita a porta que será utilizada, como responder a determinadas requisições e outras configurações.
 
-Podemos prepara um exemplo de configuração que trata apenas de receber requests de arquivos estáticos (`.html` ou `.txt`):
+Podemos preparar um exemplo de configuração que trata apenas de receber requests de arquivos estáticos (`.html` ou `.txt`):
 
 ```
 server.document-root = "/usr/lighttpd/mysite.com/"
@@ -80,14 +89,33 @@ $HTTP["host"] == "redes.io" {
 }
 ``` 
 
-Mas, como podemos imaginar, isto pode tornar-se um problema à medida que desejamos lidar com muitos clientes e prover diferentes configurações a cada website.
+Mas, como podemos imaginar, isto pode tornar-se um problema à medida que desejamos lidar com muitos clientes e prover diferentes configurações a cada website como citado anteriormente.
+
+Com o módulo `mod_mysql_vhost` podemos então conectar nosso servidor a um banco de dados `mysql` responsável por tal mapeamento. Especificamos então o nome do banco de dados, como encontrá-lo em nossa rede e qual comando utilizar para realizar a busca.
+
+```
+server.modules = (
+	"mod_accesslog",
+	"mod_mysql_vhost"
+)
+
+mysql-vhost.db		= "NOME_DO_BANCO"
+mysql-vhost.user	= "USUARIO"
+mysql-vhost.pass	= "SENHA"
+
+(!!!!!!!!!!!!!!!)
+mysql-vhost.sql		= "SELECT docroot FROM domains WHERE domain='?';"
+(!!!!!!!!!!!!!!!)
+
+mysql-vhost.hostname	= "HOSTNAME"
+mysql-vhost.port	= "PORTA"
+```
+
+## SQL
+
+SQL se trata de uma linguagem declarativa para administrar bancos de dados relacionais, sendo utilizada (...) etc
 
 TODO
-
-
-## sql
-
-SQL se trata de uma linguagem para 'conversar' com databases através de uma linguagem bastante alta - chega a lembrar bastante inglês.
 
 - SELECT
 - INSERT
@@ -98,24 +126,40 @@ SQL se trata de uma linguagem para 'conversar' com databases através de uma lin
 
 TODO
 
+Problemas acontecem então pelo fato que os sistemas de gerenciamento de banco de dados que utilizam SQL supõe que os comandos inseridos serão comandos de conhecimento do administrator e por ele bem geridos. Tal suposição nem sempre é verdadeira, uma vez que falhar nos sistemas que interagem com o sistema de BD pode apresentar falhas, principalmente na web, onde a interação com o usuário é grande.
+
+
 ### sql injection
 
-O problema com as SQL queries aparecem quando passou a haver a intenção de construir tais queries usando strings que usuários entram.
+O problema com os comandos SQL aparecem quando passa a haver a intenção de construir os comandos usando textos que originados pelo usuário, seja um nome de usuário, senha ou qualquer outro conteúdo dinâmico.
+
+(TODO)
 
 Como resolver? Escaping.
 
-TODO
+Na nossa configuração, por exemplo, temos uma grande brecha:
+
+```
+mysql-vhost.sql		= "SELECT docroot FROM domains WHERE domain='?';"
+```
+
+ja que possivelmente (e é o que acontecia até a versão 1.4.34) o `?` pode ser substituído por qualquer comando e executado então pelo MySQL.
+
+Vamos então simular isso em uma rede com 3 containers: 1 servidor mysql e dois servidores lighttpd, um vulnerável e outro consertado.
 
 ## Docker
 
-Provém uma camada de abstração em cima do sistema operacional permitindo virtualização sem a necessidade de outro sistema operacional através do uso de mecanismos de isolamento fornecidos pelo kernel, como `cgroups` e `namespaces`, removendo então todo o overhead de inciar e manter uma máquina virtual. Há, dessa forma, grande otimização referente à alocação de recursos (e.g, 100 máquinas virtuais com imagens de 1GB ==> 100GB. 100 containers de uma imagem de 1GB ==> ~1GB.) e compartilhamento de processamento, assim como o Kernel e o sistema operacional em si. Arquivos comuns aos containers podem também ser compartilhados por meio de um sistem de arquivos em camadas (TODO).
+O Docker provém uma camada de abstração em cima do sistema operacional permitindo virtualização sem a necessidade de outro SO através do uso de mecanismos de isolamento fornecidos pelo kernel, como `cgroups` (isolar uso de CPU, IO, memória e uso de redes de uma coleção de processos) e `namespaces` (), removendo então todo o overhead de inciar e manter uma máquina virtual. Há, dessa forma, grande otimização referente à alocação de recursos (e.g, 100 máquinas virtuais com imagens de 1GB ==> 100GB. 100 containers de uma imagem de 1GB ==> ~1GB.) e compartilhamento de processamento, assim como o Kernel e o sistema operacional em si. Arquivos comuns aos containers podem também ser compartilhados por meio de um sistem de arquivos em camadas (TODO).
+
+Uma analogia interessante aos namespaces é o `chroot`, que permite que um processo enxergue um diretório como o root de todo seu sistema de arquivos, alterando sua perspectiva do sistema (sem alterar o resto do sistema). Com os namespaces podemos criar essa perspectiva diferenciada para diversos outros aspectos do SO, tal como árvore de processos, interfaces de redes, FS, IPC e outros.
+
+(ver mais: [Separation Anxiety: A Tutorial for Isolating Your System with Linux Namespaces](http://www.toptal.com/linux/separation-anxiety-isolating-your-system-with-linux-namespaces))
 
 Deve-se levar em conta que eventualmente o usuário não deseje tal compartilhamento e pouco isolamente.
 
-### Namespaces
+### Container Networking
 
-
-### Docker Networking
+ver [LWN - Network Namespaces](https://lwn.net/Articles/219794/)
 
 ```
    The Internet Assigned Numbers Authority (IANA) has reserved the
@@ -127,6 +171,8 @@ Deve-se levar em conta que eventualmente o usuário não deseje tal compartilham
 ```
 
 Quando docker iniicia, cria uma interface virtual chamada `docker0` no host.
+
+TODO
 
 
 ## Demo!
