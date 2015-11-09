@@ -255,7 +255,7 @@ As 'supostas máquinas' estão prontas, resta então apenas configurar o DNS par
 172.17.0.3 mac5910.io
 ```
 
-Precisamos agora fazer com que o servidor `lighttpd` seja capaz de fazer a tarefa de *virtual hosting* usando o servidor de mysql. Para isto precisamos inserir as entradas no banco de dados de modo que nossos servidores possam então lidar com a tarefa de acordo o BD (utilizando os scripts a cima não há necessidade de realizar o procedimento a baixo - o script já inicializa a tabela):
+Precisamos agora fazer com que o servidor `lighttpd` seja capaz de fazer a tarefa de *virtual hosting* usando o servidor de mysql. Para isto precisamos inserir as entradas no banco de dados de modo que nossos servidores possam então lidar com a tarefa de acordo o BD (utilizando os scripts a cima não há necessidade de realizar o procedimento abaixo - o script já inicializa a tabela):
 
 ```sh
 $ docker exec -it lighty-mysqlserver bash
@@ -376,8 +376,7 @@ Como nosso banco de dados perdeu a tabela de virtual hosting precisamos recuper�
 $ docker exec $DOCKER_MYSQL "bash" "-c" "mysql -u root -ptoor lighttpd < /db-init.sql"
 ```
 
-Podemos verificar que o patch resolve o problema primeiramente refazendo os testes incluídos:
-
+Podemos verificar que o patch resolve o problema ao tentarmos realizar o ataque novamente (agora ao servidor consertado):
 ```
 ```sh
 $ ./scripts/exploit4
@@ -385,8 +384,17 @@ $ ./scripts/exploit4
 curl --header "Host: []'; DROP TABLE domains;--'" redes.io
 ```
 
-**Requisição HTTP maliciosa**
-![Requisição HTTP maliciosa](assets/sql-injection-HTTP-request-patched.png)
+Realizamos então a requisição HTTP maliciosa:
+
+**Requisição HTTP maliciosa ao servidor consertado**
+![Requisição HTTP maliciosa ao servidor consertado](assets/HTTP-request-patched.png)
+
+Mas, vejamos o fluxo de pacotes na rede:
+
+**Fluxo de Pacotes**
+![Fluxo de Pacotes - servidor arrumado](assets/packet-flow-patched.png)
+
+Como podemos ver, por se tratar de um pacote malicioso o servidor já retorna erro de má-formação de requisição e não faz qualquer pedido ao banco de dados.
 
 
 ### Patch

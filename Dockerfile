@@ -23,6 +23,7 @@ RUN mkdir -p lighttpd/redes   && \
     mkdir -p lighttpd/mac0448 && \
     mkdir -p lighttpd/mac5910
 
+COPY common/lighttpd.conf /usr/lighttpd/lighttpd.conf
 COPY common/mac0448/index.html /usr/lighttpd/mac0448/index.html
 COPY common/mac5910/index.html /usr/lighttpd/mac5910/index.html
 COPY common/redes/index.html /usr/lighttpd/redes/index.html
