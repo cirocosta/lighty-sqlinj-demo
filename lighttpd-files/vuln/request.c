@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include <ctype.h>
 
+// [EP4] o buffer `host` já contém toda a string
+//       que contém o host, ou seja, a parte de
+//       value do mapeamento "key:value" de um
+//       cabeçalho http.
 static int request_check_hostname(server *srv, connection *con, buffer *host) {
   enum { DOMAINLABEL, TOPLABEL } stage = TOPLABEL;
   size_t i;
@@ -29,6 +33,9 @@ static int request_check_hostname(server *srv, connection *con, buffer *host) {
    *       domainlabel   = alphanum | alphanum *( alphanum | "-" ) alphanum
    *       toplabel      = alpha | alpha *( alphanum | "-" ) alphanum
    *       IPv4address   = 1*digit "." 1*digit "." 1*digit "." 1*digit
+   *      
+   *       --- [EP4] IPv6address não estava corretamente implementado! ---
+   *      
    *       IPv6address   = "[" ... "]"
    *       port          = *digit
    */
@@ -43,6 +50,8 @@ static int request_check_hostname(server *srv, connection *con, buffer *host) {
     char *c = host->ptr + 1;
     int colon_cnt = 0;
 
+    // [EP4] checa o endereço dentro dos colchetes, verificando se
+    //       contém o número correto de ':'
     /* check portnumber */
     for (; *c && *c != ']'; c++) {
       if (*c == ':') {
@@ -59,6 +68,9 @@ static int request_check_hostname(server *srv, connection *con, buffer *host) {
       return -1;
     }
 
+    // [EP4] dado que chegou até o fim, verifica se o
+    //       próximo se trata de um ":" e então, caso 
+    //       exista, verifica se o que segue são dígitos
     /* check port */
     if (*(c+1) == ':') {
       for (c += 2; *c; c++) {
@@ -67,6 +79,11 @@ static int request_check_hostname(server *srv, connection *con, buffer *host) {
         }
       }
     }
+
+    // [EP4] adiciona condicional para verificar se o endereço de
+    //       fato terminou (checa se (*c+1) == '\0', ou seja, fim
+    //       da string.
+
     return 0;
   }
 
@@ -96,6 +113,10 @@ static int request_check_hostname(server *srv, connection *con, buffer *host) {
 
   if (host_len == 0) return -1;
 
+  // [EP4] hostlen indica o numero de caracteres no 'value'
+  //       do mapeamento <key:value> das entreadas do cabeçalho
+  //       do HTTP. Ou seja, contém todo o host 'infectado'
+  
   /* scan from the right and skip the \0 */
   for (i = host_len; i-- > 0; ) {
     const char c = host->ptr[i];

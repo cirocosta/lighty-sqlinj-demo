@@ -372,6 +372,22 @@ Podemos verificar que o patch resolve o problema primeiramente refazendo os test
 
 ```
 ```sh
-$ curl --header "Host: []' UNION SELECT'" redes.io
+$ ./scripts/run-exploit4
+
+curl --header "Host: []'; DROP TABLE domains;--'" redes.io
 ```
 
+**Requisição HTTP maliciosa**
+![Requisição HTTP maliciosa](assets/sql-injection-HTTP-request-patched.png)
+
+
+### Patch
+
+```c
+  /*
+   *       host          = hostname | IPv4address | IPv6address
+   *         (...)
+   *       IPv6address   = "[" ... "]"
+   *         (...)
+   */
+```
