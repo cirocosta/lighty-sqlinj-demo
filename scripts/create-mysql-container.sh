@@ -5,9 +5,11 @@ DATABASE_NAME=lighttpd
 MYSQL_IMAGE=mysql:latest
 
 
-if [[ "$(docker ps -a --filter 'name=$DOCKER_MYSQL' --format='{{ .Names }}' 2> /dev/null)" != "" ]]; then
+if [[ "$(docker ps -a --filter 'name=lighty-mysqlserver' --format='{{ .Names }}' 2> /dev/null)" != "" ]]; then
+  echo "--------"
   echo "The container '$DOCKER_MYSQL' already exists." 
-  echo "If it is not running, simply run 'docker start $DOCKER_MYSQL'." 
+  echo "If it is not Up, simply run 'docker start $DOCKER_MYSQL'." 
+  echo "  Instance: $(docker ps -a --filter 'name=lighty-mysqlserver' --format='{{ .Names }} | {{ .Status }}')"
   exit 1
 fi
 

