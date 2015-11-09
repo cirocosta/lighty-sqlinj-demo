@@ -59,21 +59,19 @@ Uma das features do lighty é o fácil gerenciamente de virtual hosts.
 
 ## Virtual Hosting
 
-Trata-se de um método utilizado para hosperadas mais de um nome de domínio cuja resolução se faz a um mesmo IP, reduzindo custos de hospedagem a empresas que buscam ofertam websites uma vez que não é necessário ofertar um servidor dedicado a cada website.
+Trata-se de um método utilizado para hosperadas mais de um nome de domínio cuja resolução se faz a um mesmo IP, reduzindo custos de hospedagem a empresas que buscam ofertar websites uma vez que não é necessário reservar um servidor dedicado a cada website.
 
 A técnica pode ser baseada em IP (uma interface para cada host) ou baseada em nome (um nome para cada host, compartilhando a interface) - explorada nesta apresentação.
 
 **Name-Based**
 
-:   TODO
+:   utiliza o 'Hostname' fornecido pelo cliente para identificar qual serviço usar para responder de acordo. Tal método apresenta duas dificuldade: complicações para lidar com sessões seguras (TLS) - handshake deve ser feito antes de qualquer passagem de cabeçalho indicando o Host ao servidor, complicando então a determinação de qual certificado apresentar no handshake. Uma saída este problema é uma extensão ao TLS chamada *Server Name Indication (SNI)* que permite apresentar o nome no início do handshake, possibilitando então a escolha do certificado correto. Um segundo problema é quanto à tentativa de conexão sem o cabeçalho Host bem definido, acarretando em indeterminação de serviço a ser utilizado.
 
 **IP-Based**
 
-:   TODO
+:   utiliza IPs separados para cada aplicação. O webserver é então configurado para múltiplas interfaces de rede fśiicas (ou virtuais sob uma mesma interface) e então responder de forma correspondente de acordo com o endereço de IP (destino)G;.
 
-**Mixed**
-
-:   TODO
+    *IP aliasing*, permite que criemos interfaces virtuais para cada serviço.
 
 No caso de uma grande empresa pode tornar-se complexo administrar tal mapeamente dependendo do número de clientes. O Lighty oferece então suporte para o uso de banco de dados para tal finalidade como mostraremos adiante.
 
