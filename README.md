@@ -399,12 +399,27 @@ Como podemos ver, por se tratar de um pacote malicioso o servidor já retorna er
 
 ### Patch
 
-```c
-  /*
-   *       host          = hostname | IPv4address | IPv6address
-   *         (...)
-   *       IPv6address   = "[" ... "]"
-   *         (...)
-   */
-```
+A vulnerabilidade se expressa em duas partes do código: no módulo `mod_mysql_vhost` (que deveria, em último caso, não interpretar o que foi passado naquela parte da query como um comando válido) e no handling de requisições `request.c`.
+
+
+#### `mod_mysql_vhost.c`
+
+No módulo a resolução do problema é simples, basta incluir a rotina de *escape* providenciada pelo MySQL e então caso eventualmente algum comando malicioso seja inserido, nada acontecerá ao servidor (já que o MySQL indicará o erro).
+
+![Patch do módulo](assets/patch-mod_mysql.png)
+
+
+#### `request.c`
+
+No código de requisição há o tratamento para o caso em que após o endereço IPv6 a string não termina (isto é, não apresenta `\0`). Até então o servidor era capaz de identificar corretamente se o hostname é válido de acordo com a gramática (também aceitando os casos em que se passa uma porta junto do endereço) porém quando a porta não era passada (terminava-se o IPv6 válido) não se removia o resto da string após o fechamento dos colchetes (que indica o fim de um endereço).
+
+Desta forma:
+
+![Patch do request.c](assets/patch-request.png)
+
+verifica-se então o caso.
+
+> Commits:
+> - patched: 1.4.35 - d1a23569161148f5acde8d4a6fb78c44284e1853 
+> - non-patched: 1.4.32 - 3ca6adc2332be2ca18b66698a759fae5831f164f
 
