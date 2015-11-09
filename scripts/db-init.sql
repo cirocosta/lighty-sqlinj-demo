@@ -1,5 +1,5 @@
 /* 
- * Create the 'domains' table which contains our 
+ * Creates the 'domains' table which contains our 
  * virtual hosting data;
  */
 CREATE TABLE domains(

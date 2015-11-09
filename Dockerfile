@@ -27,8 +27,8 @@ COPY common/mac0448/index.html /usr/lighttpd/mac0448/index.html
 COPY common/mac5910/index.html /usr/lighttpd/mac5910/index.html
 COPY common/redes/index.html /usr/lighttpd/redes/index.html
 
-COPY common/build-lighttpd.sh /usr/lighttpd-1.4.34/build-lighttpd.sh
-COPY common/build-lighttpd.sh /usr/lighttpd-1.4.35/build-lighttpd.sh
+COPY common/build-lighttpd.sh /usr/lighttpd1.4-lighttpd-1.4.34/build-lighttpd.sh
+COPY common/build-lighttpd.sh /usr/lighttpd1.4-lighttpd-1.4.35/build-lighttpd.sh
 
 
 EXPOSE 80

@@ -255,7 +255,7 @@ As 'supostas máquinas' estão prontas, resta então apenas configurar o DNS par
 172.17.0.3 mac5910.io
 ```
 
-Precisamos agora fazer com que o servidor `lighttpd` seja capaz de fazer a tarefa de *virtual hosting* usando o servidor de mysql. Para isto precisamos inserir as entradas no banco de dados de modo que nossos servidores possam então lidar com a tarefa de acordo o BD:
+Precisamos agora fazer com que o servidor `lighttpd` seja capaz de fazer a tarefa de *virtual hosting* usando o servidor de mysql. Para isto precisamos inserir as entradas no banco de dados de modo que nossos servidores possam então lidar com a tarefa de acordo o BD (utilizando os scripts a cima não há necessidade de realizar o procedimento a baixo - o script já inicializa a tabela):
 
 ```sh
 $ docker exec -it lighty-mysqlserver bash
@@ -369,6 +369,12 @@ E a tabela se foi! Consequentemente o servidor não será capaz de resolver host
 
 
 ### Verificação do Patch
+
+Como nosso banco de dados perdeu a tabela de virtual hosting precisamos recuperá-la. Para isto basta executarmos, dentro do container, o processo de criação de tabela e inserção dos valores:
+
+```
+$ docker exec $DOCKER_MYSQL "bash" "-c" "mysql -u root -ptoor lighttpd < /db-init.sql"
+```
 
 Podemos verificar que o patch resolve o problema primeiramente refazendo os testes incluídos:
 
