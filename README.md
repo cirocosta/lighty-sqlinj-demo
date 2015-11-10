@@ -182,7 +182,7 @@ Vamos então simular isso em uma rede com 3 containers: 1 servidor mysql e dois 
 
 ## Docker
 
-O Docker provém uma camada de abstração em cima do sistema operacional permitindo virtualização sem a necessidade de outro SO através do uso de mecanismos de isolamento fornecidos pelo kernel, como `cgroups` (isolar uso de CPU, IO, memória e uso de redes de uma coleção de processos) e `namespaces` (), removendo então todo o overhead de inciar e manter uma máquina virtual. Há, dessa forma, grande otimização referente à alocação de recursos (e.g, 100 máquinas virtuais com imagens de 1GB ==> 100GB. 100 containers de uma imagem de 1GB ==> ~1GB.) e compartilhamento de processamento, assim como o Kernel e o sistema operacional em si. Arquivos comuns aos containers podem também ser compartilhados por meio de um sistem de arquivos em camadas (TODO).
+O Docker provê uma camada de abstração em cima do sistema operacional que permite virtualização sem a necessidade de outro SO por meio do uso de mecanismos de isolamento fornecidos pelo kernel, como `cgroups` (isolar uso de CPU, IO, memória e uso de redes de uma coleção de processos) e `namespaces` (), removendo então todo o overhead de inciar e manter uma máquina virtual. Há, dessa forma, grande otimização referente à alocação de recursos (e.g, 100 máquinas virtuais com imagens de 1GB ==> 100GB. 100 containers de uma imagem de 1GB ==> ~1GB.) e compartilhamento de processamento, assim como o Kernel e o sistema operacional em si. Arquivos comuns aos containers podem também ser compartilhados por meio de um sistem de arquivos em camadas.
 
 Uma analogia interessante aos namespaces é o `chroot`, que permite que um processo enxergue um diretório como o root de todo seu sistema de arquivos, alterando sua perspectiva do sistema (sem alterar o resto do sistema). Com os namespaces podemos criar essa perspectiva diferenciada para diversos outros aspectos do SO, tal como árvore de processos, interfaces de redes, FS, IPC e outros.
 
@@ -192,7 +192,7 @@ Deve-se levar em conta que eventualmente o usuário não deseje tal compartilham
 
 ### Container Networking
 
-ver [LWN - Network Namespaces](https://lwn.net/Articles/219794/)
+No momento de boot do deamon do Docker é configurada uma interface virtual chamada `docker0` no host, selecionando uma subnet não utilizada pelo host e então assinalando um IP livre à interface virtual. Lembremos que um dos três ranges poderiam ser utilizados:
 
 ```
    The Internet Assigned Numbers Authority (IANA) has reserved the
@@ -203,9 +203,22 @@ ver [LWN - Network Namespaces](https://lwn.net/Articles/219794/)
      192.168.0.0     -   192.168.255.255 (192.168/16 prefix)
 ```
 
-Quando docker iniicia, cria uma interface virtual chamada `docker0` no host.
+Na minha máquina, por exemplo:
 
-TODO
+```
+docker0   Link encap:Ethernet  HWaddr 02:42:58:ca:78:6d  
+          inet addr:172.17.0.1  Bcast:0.0.0.0  Mask:255.255.0.0
+          inet6 addr: fe80::42:58ff:feca:786d/64 Scope:Link
+          UP BROADCAST MULTICAST  MTU:1500  Metric:1
+          RX packets:74601 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:98561 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:4196391 (4.1 MB)  TX bytes:380442767 (380.4 MB)
+```
+
+Para cada container instanciado com configurações padrões de rede o deamon então trata de configurar uma interface (no exemplo abaixo, `verth5998947` para o container 1, por exemplo) no host (parte da subnet do docker0) e outra interface no container (`eth0`), além alterar configuração do iptables (permite que o administrador defina tabelas de cadeias de regras para o tratamento de pacotes no host) e NAT para que tráfego externo seja encaminhado aos containers.
+
+![Interfaces com docker](assets/docker-network.png)
 
 
 ## Demo
@@ -421,3 +434,7 @@ verifica-se então o caso.
 > - patched: 1.4.35 - d1a23569161148f5acde8d4a6fb78c44284e1853 
 > - non-patched: 1.4.32 - 3ca6adc2332be2ca18b66698a759fae5831f164f
 
+## Recursos
+
+- http://www.linuxjournal.com/content/concerning-containers-connections-docker-networking
+- http://lighttpd.net/
