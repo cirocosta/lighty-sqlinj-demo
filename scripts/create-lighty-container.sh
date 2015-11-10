@@ -32,6 +32,7 @@ if [[ "$(docker ps --filter 'name=lighty-mysqlserver' --format='{{ .Names }}' 2>
   echo "A running container named '$DOCKER_MYSQL' couldn't be found." 
   echo "You must to have a mysqlserver container named $DOCKER_MYSQL running." 
   echo "Run './create-mysql-container' to create it and make it run." 
+  echo "  Instance: $(docker ps -a --filter 'name=lighty-mysqlserver' --format='{{ .Names }} | {{ .Status }}')"
   exit 1
 fi
 

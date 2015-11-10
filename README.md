@@ -188,6 +188,8 @@ Vamos então simular isso em uma rede com 3 containers: 1 servidor mysql e dois 
 
 O Docker provê uma camada de abstração em cima do sistema operacional que permite virtualização sem a necessidade de outro SO por meio do uso de mecanismos de isolamento fornecidos pelo kernel, como `cgroups` (isolar uso de CPU, IO, memória e uso de redes de uma coleção de processos) e `namespaces` (), removendo então todo o overhead de inciar e manter uma máquina virtual. Há, dessa forma, grande otimização referente à alocação de recursos (e.g, 100 máquinas virtuais com imagens de 1GB ==> 100GB. 100 containers de uma imagem de 1GB ==> ~1GB.) e compartilhamento de processamento, assim como o Kernel e o sistema operacional em si. Arquivos comuns aos containers podem também ser compartilhados por meio de um sistem de arquivos em camadas.
 
+![Docker vs VM](assets/docker-vs-vm.png)
+
 Uma analogia interessante aos namespaces é o `chroot`, que permite que um processo enxergue um diretório como o root de todo seu sistema de arquivos, alterando sua perspectiva do sistema (sem alterar o resto do sistema). Com os namespaces podemos criar essa perspectiva diferenciada para diversos outros aspectos do SO, tal como árvore de processos, interfaces de redes, FS, IPC e outros.
 
 (ver mais: [Separation Anxiety: A Tutorial for Isolating Your System with Linux Namespaces](http://www.toptal.com/linux/separation-anxiety-isolating-your-system-with-linux-namespaces))
