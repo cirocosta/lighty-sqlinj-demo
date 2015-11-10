@@ -67,6 +67,9 @@ A técnica pode ser baseada em IP (uma interface para cada host) ou baseada em n
 
 :   utiliza o 'Hostname' fornecido pelo cliente para identificar qual serviço usar para responder de acordo. Tal método apresenta duas dificuldade: complicações para lidar com sessões seguras (TLS) - handshake deve ser feito antes de qualquer passagem de cabeçalho indicando o Host ao servidor, complicando então a determinação de qual certificado apresentar no handshake. Uma saída este problema é uma extensão ao TLS chamada *Server Name Indication (SNI)* que permite apresentar o nome no início do handshake, possibilitando então a escolha do certificado correto. Um segundo problema é quanto à tentativa de conexão sem o cabeçalho Host bem definido, acarretando em indeterminação de serviço a ser utilizado.
 
+![Virtual Host - redes.io](assets/vhosting-redes.io)
+![Virtual Host - mac0448.io](assets/vhosting-mac0448.io)
+
 **IP-Based**
 
 :   utiliza IPs separados para cada aplicação. O webserver é então configurado para múltiplas interfaces de rede fśiicas (ou virtuais sob uma mesma interface) e então responder de forma correspondente de acordo com o endereço de IP (destino)G;.
@@ -76,6 +79,7 @@ A técnica pode ser baseada em IP (uma interface para cada host) ou baseada em n
 No caso de uma grande empresa pode tornar-se complexo administrar tal mapeamente dependendo do número de clientes. O Lighty oferece então suporte para o uso de banco de dados para tal finalidade como mostraremos adiante.
 
 Antes, vejamos como fazer "na mão" a configuração de um servidor e então adicionar vhosting.
+
 
 ### Preparando um servidor Lighttpd
 
